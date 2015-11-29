@@ -9,8 +9,6 @@
 #import "KVICheckbox.h"
 #import "KVICheckboxGroup.h"
 
-NSString* KVICheckboxStatusChangedNotification = @"KVICheckboxStatusChangedNotification";
-
 
 @interface KVICheckbox ()
 
@@ -39,12 +37,21 @@ NSString* KVICheckboxStatusChangedNotification = @"KVICheckboxStatusChangedNotif
 }
 
 - (void)setSelected:(BOOL)selected {
-    _selected = selected;
+    BOOL canChangeState = TRUE;
     
-    [[NSNotificationCenter defaultCenter] postNotificationName:KVICheckboxStatusChangedNotification
-                                                        object:self];
+    if ([self.delegate respondsToSelector:@selector(checkbox:shouldChangeStateToState:)]) {
+        canChangeState = [self.delegate checkbox:self shouldChangeStateToState:selected];
+    }
     
-    [self updateImage];
+    if (canChangeState) {
+        _selected = selected;
+        
+        [self updateImage];
+        
+        if ([self.delegate respondsToSelector:@selector(checkboxDidChangeState:)]) {
+            [self.delegate checkboxDidChangeState:self];
+        }
+    }
 
 }
 
@@ -74,9 +81,7 @@ NSString* KVICheckboxStatusChangedNotification = @"KVICheckboxStatusChangedNotif
 #pragma mark - Actions
 
 - (void)selfTapped {
-    if (!self.selected) {
-        self.selected = TRUE;
-    }
+    self.selected = !self.selected;
 }
 
 #pragma mark - Private

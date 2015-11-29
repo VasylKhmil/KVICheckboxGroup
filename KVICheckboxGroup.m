@@ -9,13 +9,19 @@
 #import "KVICheckboxGroup.h"
 #import "KVICheckbox.h"
 
+@interface KVICheckboxGroup () <KVICheckboxDelegate>
+
+@property (nonatomic, strong) KVICheckbox *anySelectedCheckbox;
+
+@end
+
 @implementation KVICheckboxGroup
+@synthesize
+delegate                = _delegate,
+allowMultipleSelection  = _allowMultipleSelection,
+checkboxes              = _checkboxes;
 
 static NSMutableDictionary* groupPerIdentifier;
-
-#pragma mark - Constants
-
-static NSString* const SelectedKey = @"selected";
 
 #pragma mark - initialization
 
@@ -46,8 +52,14 @@ static NSString* const SelectedKey = @"selected";
     return self;
 }
 
-- (void)dealloc {
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
+#pragma mark - Properties
+
+- (NSArray *)selectedCheckboxes {
+    NSArray *result = [self.checkboxes filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(KVICheckbox*  _Nonnull evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings) {
+        return evaluatedObject.selected;
+    }]];
+    
+    return result;
 }
 
 #pragma mark - Public
@@ -59,10 +71,7 @@ static NSString* const SelectedKey = @"selected";
         
         if (![mutableCheckboxes containsObject:checkbox]) {
             [mutableCheckboxes addObject:checkbox];
-            [[NSNotificationCenter defaultCenter] addObserver:self
-                                                     selector:@selector(checkboxValueChanged:)
-                                                         name:KVICheckboxStatusChangedNotification
-                                                       object:checkbox];
+            checkbox.delegate = self;
         }
     }
 }
@@ -75,24 +84,53 @@ static NSString* const SelectedKey = @"selected";
         if ([mutableCheckboxes containsObject:checkbox]) {
             [mutableCheckboxes removeObject:checkbox];
             
-            [[NSNotificationCenter defaultCenter] removeObserver:self
-                                                            name:KVICheckboxStatusChangedNotification
-                                                          object:checkbox];
+            checkbox.delegate = nil;
         }
     }
 }
 
-#pragma mark - Observation
+#pragma mark - KVICheckboxDelegate
 
-- (void)checkboxValueChanged:(NSNotification *)notification {
-    KVICheckbox *changedCheckbox = notification.object;
-    
-    if ([self.checkboxes containsObject:changedCheckbox] &&
-        changedCheckbox.selected) {
+- (BOOL)checkbox:(KVICheckbox *)checkbox shouldChangeStateToState:(BOOL)selected {
+    if (!selected           &&
+        checkbox.selected   &&
+        !self.allowMultipleSelection &&
+        self.anySelectedCheckbox == checkbox) {
+        
+        return FALSE;
+        
+    } else {
+        return TRUE;
+    }
+}
+
+- (void)checkboxDidChangeState:(KVICheckbox *)checkbox {
+    if (checkbox.selected) {
+        
+        self.anySelectedCheckbox = checkbox;
+        
+        if (!self.allowMultipleSelection) {
+            [self deselectAllAcceptCheckbox:checkbox];
+        }
+        
+        if ([self.delegate respondsToSelector:@selector(checkboxGroup:didSelectCheckbox:)]) {
+            [self.delegate checkboxGroup:self didSelectCheckbox:checkbox];
+        }
+        
+    } else {
+        
+        if ([self.delegate respondsToSelector:@selector(checkboxGroup:didDeselectCheckbox:)]) {
+            [self.delegate checkboxGroup:self didDeselectCheckbox:checkbox];
+        }
+    }
+}
+
+- (void)deselectAllAcceptCheckbox:(KVICheckbox *)selectedCheckbox {
+    if ([self.checkboxes containsObject:selectedCheckbox]) {
         
         
         for (KVICheckbox *checkbox in self.checkboxes) {
-            if (checkbox != changedCheckbox) {
+            if (checkbox != selectedCheckbox) {
                 checkbox.selected = FALSE;
             }
         }
