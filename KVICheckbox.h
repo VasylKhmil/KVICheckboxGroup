@@ -23,12 +23,12 @@
 
 @interface KVICheckbox : UIImageView
 
-@property (nonatomic)           IBInspectable BOOL selected;
-@property (nonatomic, strong)   IBInspectable NSString *groupIdentifier;
+@property (nonatomic)                   IBInspectable BOOL selected;
+@property (nonatomic, strong, nonnull)  IBInspectable NSString *groupIdentifier;
 
-@property (nonatomic, weak) id<KVICheckboxDelegate> delegate;
+@property (nonatomic, weak, nullable) id<KVICheckboxDelegate> delegate;
 
-@property (nonatomic, strong) UIImage *checkedImage;
-@property (nonatomic, strong) UIImage *uncheckedImage;
+@property (nonatomic, strong, nullable) UIImage *checkedImage;
+@property (nonatomic, strong, nullable) UIImage *uncheckedImage;
 
 @end
