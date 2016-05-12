@@ -11,4 +11,6 @@
 
 @interface KVICheckboxGroup : NSObject <KVICheckboxGroup>
 
++ (instancetype)groupWithIdentifier:(NSString *)groupIdentifier;
+
 @end
